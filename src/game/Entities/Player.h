@@ -57,12 +57,12 @@ class Spell;
 class Item;
 struct FactionTemplateEntry;
 
-#ifdef BUILD_PLAYERBOT
-#include "PlayerBot/Base/PlayerbotMgr.h"
-#include "PlayerBot/Base/PlayerbotAI.h"
-#endif
-
 struct AreaTrigger;
+
+#ifdef ENABLE_PLAYERBOTS
+class PlayerbotAI;
+class PlayerbotMgr;
+#endif
 
 typedef std::deque<Mail*> PlayerMails;
 
@@ -1321,23 +1321,14 @@ class Player : public Unit
         void AddTimedQuest(uint32 quest_id) { m_timedquests.insert(quest_id); }
         void RemoveTimedQuest(uint32 quest_id) { m_timedquests.erase(quest_id); }
 
-#ifdef BUILD_PLAYERBOT
-        void chompAndTrim(std::string& str);
-        bool getNextQuestId(const std::string& pString, unsigned int& pStartPos, unsigned int& pId);
-        void skill(std::list<uint32>& m_spellsToLearn);
-        bool requiredQuests(const char* pQuestIdString);
-        PlayerMails::reverse_iterator GetMailRBegin() { return m_mail.rbegin();}
-        PlayerMails::reverse_iterator GetMailREnd() { return m_mail.rend();}
-        void UpdateMail();
-        uint32 GetSpec();
-#endif
-
         /*********************************************************/
         /***                   LOAD SYSTEM                     ***/
         /*********************************************************/
 
         bool LoadFromDB(ObjectGuid guid, SqlQueryHolder* holder);
-
+#ifdef ENABLE_PLAYERBOTS
+        bool MinimalLoadFromDB(QueryResult *result, uint32 guid);
+#endif
         static uint32 GetZoneIdFromDB(ObjectGuid guid);
         static uint32 GetLevelFromDB(ObjectGuid guid);
         static bool   LoadPositionFromDB(ObjectGuid guid, uint32& mapid, float& x, float& y, float& z, float& o, bool& in_flight);
@@ -2129,17 +2120,6 @@ class Player : public Unit
         void SetTitle(uint32 titleId, bool lost = false);
         void SetTitle(CharTitlesEntry const* title, bool lost = false);
 
-#ifdef BUILD_PLAYERBOT
-        // A Player can either have a playerbotMgr (to manage its bots), or have playerbotAI (if it is a bot), or
-        // neither. Code that enables bots must create the playerbotMgr and set it using SetPlayerbotMgr.
-        void SetPlayerbotAI(PlayerbotAI* ai) { assert(!m_playerbotAI && !m_playerbotMgr); m_playerbotAI = ai; }
-        PlayerbotAI* GetPlayerbotAI() { return m_playerbotAI; }
-        void SetPlayerbotMgr(PlayerbotMgr* mgr) { assert(!m_playerbotAI && !m_playerbotMgr); m_playerbotMgr = mgr; }
-        PlayerbotMgr* GetPlayerbotMgr() { return m_playerbotMgr; }
-        void SetBotDeathTimer() { m_deathTimer = 0; }
-        bool IsInDuel() const { return duel && duel->startTime != 0; }
-#endif
-
         virtual UnitAI* AI() override { if (m_charmInfo) return m_charmInfo->GetAI(); return nullptr; }
         virtual CombatData* GetCombatData() override { if (m_charmInfo && m_charmInfo->GetCombatData()) return m_charmInfo->GetCombatData(); return m_combatData; }
 
@@ -2174,6 +2154,16 @@ class Player : public Unit
                     ++spellCDItr;
             }
         }
+
+#ifdef ENABLE_PLAYERBOTS
+        //EquipmentSets& GetEquipmentSets() { return m_EquipmentSets; }
+        void SetPlayerbotAI(PlayerbotAI* ai) { assert(!m_playerbotAI && !m_playerbotMgr); m_playerbotAI = ai; }
+        PlayerbotAI* GetPlayerbotAI() { return m_playerbotAI; }
+        void SetPlayerbotMgr(PlayerbotMgr* mgr) { assert(!m_playerbotAI && !m_playerbotMgr); m_playerbotMgr = mgr; }
+        PlayerbotMgr* GetPlayerbotMgr() { return m_playerbotMgr; }
+        void SetBotDeathTimer() { m_deathTimer = 0; }
+        //PlayerTalentMap& GetTalentMap(uint8 spec) { return m_talents[spec]; }
+#endif
 
     protected:
         /*********************************************************/
@@ -2418,7 +2408,7 @@ class Player : public Unit
         GridReference<Player> m_gridRef;
         MapReference m_mapRef;
 
-#ifdef BUILD_PLAYERBOT
+#ifdef ENABLE_PLAYERBOTS
         PlayerbotAI* m_playerbotAI;
         PlayerbotMgr* m_playerbotMgr;
 #endif
